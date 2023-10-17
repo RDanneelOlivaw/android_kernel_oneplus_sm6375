@@ -16,12 +16,12 @@
 &tlmm {
 	display_panel_avdd_default: display_panel_avdd_default {
 		mux {
-			pins = "gpio24";
+			pins = "gpio6";
 			function = "gpio";
 		};
 
 		config {
-			pins = "gpio24";
+			pins = "gpio6";
 			drive-strength = <8>;
 			bias-disable = <0>;
 			output-high;
@@ -61,7 +61,7 @@
 	/delete-property/ lab-supply;
 
 	pinctrl-0 = <&sde_te_active &disp_pins_reset>;
-	qcom,dsi-default-panel = <&dsi_r66451_amoled_cmd>;
+	qcom,dsi-default-panel = <&dsi_oplus21707_dsbj_ili7807s_fhd_plus_144fps_video>;
 };
 
 &dsi_r66451_amoled_cmd {

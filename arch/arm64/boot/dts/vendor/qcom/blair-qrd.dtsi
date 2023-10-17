@@ -43,7 +43,7 @@
 
 
 &sdhc_1 {
-	status = "ok";
+	status = "disable";
 
 	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&sdc1_on>;
@@ -75,7 +75,9 @@
 	qcom,vdd-io-voltage-level = <1800000 2960000>;
 	qcom,vdd-io-current-level = <0 22000>;
 
-	cd-gpios = <&tlmm 94 GPIO_ACTIVE_LOW>;
+	/*oplus design sd_detect active is HIGH when sd card plug in*/
+	/*cd-gpios = <&tlmm 94 GPIO_ACTIVE_LOW>;*/
+	cd-gpios = <&tlmm 94 GPIO_ACTIVE_HIGH>;
 };
 
 &ufsphy_mem {
@@ -458,10 +460,11 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 
-	status = "ok";
+	status = "disabled";
 	qcom,i2c-touch-active = "focaltech,fts_ts";
 
 	focaltech@38 {
+                status = "disabled";
 		compatible = "focaltech,fts_ts";
 		reg = <0x38>;
 		interrupt-parent = <&tlmm>;
@@ -531,4 +534,4 @@
 	};
 };
 
-#include "camera/blair-camera-sensor-qrd.dtsi"
+//#include "camera/blair-camera-sensor-qrd.dtsi"
