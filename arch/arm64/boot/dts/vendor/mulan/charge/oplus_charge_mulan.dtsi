@@ -760,13 +760,6 @@
 	};
 };
 
-&pmk8350_sdam_2 {
-	oplus_soc_backup: oplus_soc_backup@a0 {
-		reg = <0xa0 0x1>;
-		bits = <0 8>;
-	};
-};
-
 &soc {
 	discrete_charger: discrete_charger {
 		compatible = "qcom,discrete-charger";
@@ -782,9 +775,6 @@
 				   "usbtemp_l_v_chan",
 				   "usbbtb_temp_chan",
 				   "batbtb_temp_chan";
-
-		nvmem-cell-names = "oplus_soc_backup";
-		nvmem-cells = <&oplus_soc_backup>;
 
 		pinctrl-names = "default",
 				"chargerid_switch_active", "chargerid_switch_sleep", "chargerid_switch_default",

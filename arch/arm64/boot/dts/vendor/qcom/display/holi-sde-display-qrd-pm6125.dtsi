@@ -16,12 +16,12 @@
 &tlmm {
 	display_panel_avdd_default: display_panel_avdd_default {
 		mux {
-			pins = "gpio24";
+			pins = "gpio6";
 			function = "gpio";
 		};
 
 		config {
-			pins = "gpio24";
+			pins = "gpio6";
 			drive-strength = <8>;
 			bias-disable = <0>;
 			output-high;
