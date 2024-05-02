@@ -400,6 +400,7 @@ int oplus_chg_get_shutdown_soc(void)
 	if (!g_oplus_chip)
 		return 0;
 
+#ifdef CONFIG_OPLUS_SOC_BACKUP
 	chg = &g_oplus_chip->pmic_spmi.smb5_chip->chg;
 	if (chg->soc_backup_nvmem) {
 		buf = nvmem_cell_read(chg->soc_backup_nvmem, &len);
@@ -425,6 +426,7 @@ int oplus_chg_get_shutdown_soc(void)
 		if (soc == EMPTY_SOC)
 			soc = 1;
 	}
+#endif
 
 	return soc;
 }
@@ -445,12 +447,14 @@ int oplus_chg_backup_soc(int backup_soc)
 		return -EINVAL;
 	}
 
+#ifdef CONFIG_OPLUS_SOC_BACKUP
 	if (chg->soc_backup_nvmem) {
 		soc = (backup_soc & SOC_VALUE_MASK) | SOC_VALID_MASK;
 		rc = nvmem_cell_write(chg->soc_backup_nvmem, &soc, sizeof(soc));
 		if (rc < 0)
 			chg_err("store soc fail, rc=%d\n", rc);
 	}
+#endif
 
 	return rc;
 }
@@ -2636,6 +2640,7 @@ static int discrete_charger_probe(struct platform_device *pdev)
 	if (rc < 0)
 		return rc;
 
+#ifdef CONFIG_OPLUS_SOC_BACKUP
 	if (of_find_property(chg->dev->of_node, "nvmem-cells", NULL)) {
 		chg->soc_backup_nvmem = devm_nvmem_cell_get(chg->dev,
 						"oplus_soc_backup");
@@ -2646,6 +2651,7 @@ static int discrete_charger_probe(struct platform_device *pdev)
 			return rc;
 		}
 	}
+#endif
 
 	chg->tcpc = tcpc_dev_get_by_name("type_c_port0");
 	if (!chg->tcpc) {
