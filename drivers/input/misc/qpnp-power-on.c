@@ -1014,6 +1014,12 @@ static int qpnp_pon_input_dispatch(struct qpnp_pon *pon, u32 pon_type)
 		pon_rt_bit = is_pon_gen3(pon)
 				? QPNP_PON_GEN3_KPDPWR_N_SET
 				: QPNP_PON_KPDPWR_N_SET;
+		if ((pon_rt_sts & pon_rt_bit) == 0) {
+			pr_info("Power-Key UP\n");
+		} else {
+			pr_info("Power-Key DOWN\n");
+			//panic("This is intentional");
+		}
 		break;
 	case PON_RESIN:
 		pon_rt_bit = is_pon_gen3(pon)
