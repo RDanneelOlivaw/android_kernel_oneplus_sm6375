@@ -105,6 +105,8 @@ static void lcd_tp_refresh_switch(unsigned int tp_index, int fps);
 extern int preconfig_power_control(struct touchpanel_data *ts);
 extern  int reconfig_power_control(struct touchpanel_data *ts);
 
+extern unsigned int is_project(int project);
+
 #if IS_ENABLED(CONFIG_TOUCHPANEL_NOTIFY)
 static int tp_gesture_enable_flag(unsigned int tp_index);
 extern int (*tp_gesture_enable_notifier)(unsigned int tp_index);
@@ -4290,7 +4292,8 @@ static int tp_gesture_enable_flag(unsigned int tp_index)
 
 	ts = g_tp[tp_index];
 
-	if (!ts || !ts->is_incell_panel) {
+	if (!ts || (!ts->is_incell_panel &&
+		!is_project(20825) && !is_project(20826))) {
 		return LCD_POWER_OFF;
 	}
 

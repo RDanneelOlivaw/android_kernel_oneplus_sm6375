@@ -906,6 +906,8 @@ static int dsi_panel_power_off(struct dsi_panel *panel)
 			pr_err("[TP] shutdown_flag status is %d\n", shutdown_flag);
 			if (shutdown_flag == 0) {
 				pr_err("[TP] tp gesture is enable, Display not to power off\n");
+				if (is_project(20825) || is_project(20826))
+					return rc;
 			}
 		} else {
 			is_pd_with_guesture = false;
