@@ -190,6 +190,8 @@ static size_t haven_tx_avail(struct haven_pipe *pipe)
 		avail = 0;
 	else
 		avail -= FIFO_FULL_RESERVE;
+	if (WARN_ON_ONCE(avail > pipe->length))
+			avail = 0;
 
 	if (WARN_ON_ONCE(avail > pipe->length))
 		avail = 0;
