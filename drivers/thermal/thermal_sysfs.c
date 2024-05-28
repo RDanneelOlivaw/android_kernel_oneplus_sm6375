@@ -19,6 +19,9 @@
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/jiffies.h>
+#ifdef OPLUS_BUG_STABILITY
+#include <linux/vmalloc.h>
+#endif /* OPLUS_BUG_STABILITY */
 
 #include "thermal_core.h"
 
@@ -1164,6 +1167,12 @@ static void cooling_device_stats_setup(struct thermal_cooling_device *cdev)
 	var += sizeof(*stats->trans_table) * states * states;
 
 	stats = kzalloc(var, GFP_KERNEL);
+#ifdef OPLUS_BUG_STABILITY
+	if (!stats) {
+		dev_err(&cdev->device, "need buffer size=%d, try to the vzalloc() func!\n", var);
+		stats = vzalloc(var);
+	}
+#endif
 	if (!stats)
 		goto out;
 
