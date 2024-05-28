@@ -404,7 +404,9 @@ int dwc3_send_gadget_ep_cmd(struct dwc3_ep *dep, unsigned cmd,
 	dwc3_writel(dep->regs, DWC3_DEPCMDPAR0, params->param0);
 	dwc3_writel(dep->regs, DWC3_DEPCMDPAR1, params->param1);
 	dwc3_writel(dep->regs, DWC3_DEPCMDPAR2, params->param2);
-
+#ifdef OPLUS_FEATURE_CHG_BASIC
+	mb();
+#endif
 	/*
 	 * Synopsys Databook 2.60a states in section 6.3.2.5.6 of that if we're
 	 * not relying on XferNotReady, we can make use of a special "No
@@ -427,6 +429,16 @@ int dwc3_send_gadget_ep_cmd(struct dwc3_ep *dep, unsigned cmd,
 		cmd |= DWC3_DEPCMD_CMDACT;
 
 	dwc3_writel(dep->regs, DWC3_DEPCMD, cmd);
+
+#ifdef OPLUS_FEATURE_CHG_BASIC
+	dbg_log_string("DEP_NUM: %d :: DEPCMD=0x%08x | DWC3_DEPCMDPAR 0|1|2 = 0x%08x | 0x%08x | 0x%08x |%x |%x |%x",
+	dep->number,dwc3_readl(dep->regs, DWC3_DEPCMD),
+	dwc3_readl(dep->regs, DWC3_DEPCMDPAR0),
+	dwc3_readl(dep->regs, DWC3_DEPCMDPAR1),
+	dwc3_readl(dep->regs, DWC3_DEPCMDPAR2),
+	params->param0, params->param1, params->param2);
+#endif
+
 	do {
 		reg = dwc3_readl(dep->regs, DWC3_DEPCMD);
 		if (!(reg & DWC3_DEPCMD_CMDACT)) {
@@ -811,7 +823,7 @@ out:
 	return 0;
 }
 
-static void dwc3_remove_requests(struct dwc3 *dwc, struct dwc3_ep *dep)
+void dwc3_remove_requests(struct dwc3 *dwc, struct dwc3_ep *dep)
 {
 	struct dwc3_request		*req;
 	int ret = -EINVAL;
@@ -843,6 +855,10 @@ static void dwc3_remove_requests(struct dwc3 *dwc, struct dwc3_ep *dep)
 	if (dep->flags & DWC3_EP_END_TRANSFER_PENDING)
 		dbg_log_string("ep end_xfer cmd completion timeout for %d",
 				dep->number);
+
+	/* If endxfer is delayed, avoid unmapping requests */
+	if (dep->flags & DWC3_EP_DELAY_STOP)
+		return;
 
 	/* - giveback all requests to gadget driver */
 	while (!list_empty(&dep->started_list)) {
@@ -1706,6 +1722,7 @@ static int __dwc3_gadget_ep_queue(struct dwc3_ep *dep, struct dwc3_request *req)
 	 */
 	if ((dep->flags & DWC3_EP_END_TRANSFER_PENDING) ||
 	    (dep->flags & DWC3_EP_WEDGE) ||
+	    (dep->flags & DWC3_EP_DELAY_STOP) ||
 	    (dep->flags & DWC3_EP_STALL)) {
 		dep->flags |= DWC3_EP_DELAY_START;
 		return 0;
@@ -1854,6 +1871,17 @@ static int dwc3_gadget_ep_dequeue(struct usb_ep *ep,
 
 			dbg_log_string("req:%pK found started list",
 							&req->request);
+
+			/*
+			 * If a Setup packet is received but yet to DMA out, the controller will
+			 * not process the End Transfer command of any endpoint. Polling of its
+			 * DEPCMD.CmdAct may block setting up TRB for Setup packet, causing a
+			 * timeout. Delay issuing the End Transfer command until the Setup TRB is
+			 * prepared.
+			 */
+			if (dwc->ep0state != EP0_SETUP_PHASE && !dwc->delayed_status)
+				dep->flags |= DWC3_EP_DELAY_STOP;
+
 			/* wait until it is processed */
 			dwc3_stop_active_transfer(dep, true, true);
 
@@ -1876,7 +1904,7 @@ static int dwc3_gadget_ep_dequeue(struct usb_ep *ep,
 
 	dev_err_ratelimited(dwc->dev, "request %pK was not queued to %s\n",
 			request, ep->name);
-	ret = -EINVAL;
+	//ret = -EINVAL;
 out:
 	spin_unlock_irqrestore(&dwc->lock, flags);
 
@@ -1948,7 +1976,8 @@ int __dwc3_gadget_ep_set_halt(struct dwc3_ep *dep, int value, int protocol)
 		if (!list_empty(&dep->started_list))
 			dep->flags |= DWC3_EP_DELAY_START;
 
-			if (dep->flags & DWC3_EP_END_TRANSFER_PENDING) {
+			if (dep->flags & DWC3_EP_END_TRANSFER_PENDING ||
+			    (dep->flags & DWC3_EP_DELAY_STOP)) {
 				dep->flags |= DWC3_EP_PENDING_CLEAR_STALL;
 				if (protocol)
 					dwc->clear_stall_protocol = dep->number;
@@ -2514,6 +2543,9 @@ static int dwc3_gadget_vbus_draw(struct usb_gadget *g, unsigned int mA)
 	return 0;
 }
 
+static void __dwc3_gadget_stop(struct dwc3 *dwc);
+static int __dwc3_gadget_start(struct dwc3 *dwc);
+
 static int dwc3_gadget_pullup(struct usb_gadget *g, int is_on)
 {
 	struct dwc3		*dwc = gadget_to_dwc(g);
@@ -2551,6 +2583,7 @@ static int dwc3_gadget_pullup(struct usb_gadget *g, int is_on)
 
 	dwc->last_run_stop = ktime_get();
 
+	dwc->softconnect = is_on;
 	/*
 	 * Per databook, when we want to stop the gadget, if a control transfer
 	 * is still in process, complete it and get the core into setup phase.
@@ -2805,6 +2838,7 @@ static int __dwc3_gadget_start(struct dwc3 *dwc)
 	dwc->ep0state = EP0_SETUP_PHASE;
 	dwc->ep0_bounced = false;
 	dwc->link_state = DWC3_LINK_STATE_SS_DIS;
+	dwc->delayed_status = false;
 	dwc3_ep0_out_start(dwc);
 
 	dwc3_gadget_enable_irq(dwc);
@@ -3606,6 +3640,7 @@ int dwc3_stop_active_transfer(struct dwc3_ep *dep, bool force, bool interrupt)
 	}
 
 	if (!(dep->flags & DWC3_EP_TRANSFER_STARTED) ||
+	    (dep->flags & DWC3_EP_DELAY_STOP) ||
 	    (dep->flags & DWC3_EP_END_TRANSFER_PENDING))
 		return 0;
 
@@ -3768,6 +3803,17 @@ static void dwc3_gadget_reset_interrupt(struct dwc3 *dwc)
 	usb_gadget_vbus_draw(&dwc->gadget, 100);
 
 	dwc3_reset_gadget(dwc);
+
+#ifndef OPLUS_FEATURE_CHG_BASIC
+	/*
+	 * In the Synopsis DesignWare Cores USB3 Databook Rev. 3.30a
+	 * Section 4.1.2 Table 4-2, it states that during a USB reset, the SW
+	 * needs to ensure that it sends "a DEPENDXFER command for any active
+	 * transfers."
+	 */
+	dwc3_stop_active_transfers(dwc, false);
+	dwc->connected = true;
+#endif
 
 	reg = dwc3_readl(dwc->regs, DWC3_DCTL);
 	reg &= ~DWC3_DCTL_TSTCTRL_MASK;
@@ -4552,7 +4598,7 @@ int dwc3_gadget_resume(struct dwc3 *dwc)
 {
 	int			ret;
 
-	if (!dwc->gadget_driver)
+	if (!dwc->gadget_driver || !dwc->softconnect)
 		return 0;
 
 	ret = __dwc3_gadget_start(dwc);

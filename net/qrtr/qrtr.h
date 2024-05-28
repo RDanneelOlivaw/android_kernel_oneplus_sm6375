@@ -13,7 +13,6 @@ struct sk_buff;
 #define QRTR_DEL_PROC_MAGIC	0xe111
 
 #define MAX_NON_WAKE_SVC_LEN    5
-
 /**
  * struct qrtr_endpoint - endpoint handle
  * @xmit: Callback for outgoing packets
@@ -26,6 +25,18 @@ struct qrtr_endpoint {
 	int (*xmit)(struct qrtr_endpoint *ep, struct sk_buff *skb);
 	/* private: not for endpoint use */
 	struct qrtr_node *node;
+};
+
+/**
+ * struct qrtr_array - array with size
+ * @arr: elements in the array
+ * @size: number of elements
+ *
+ * An array with its size provided.
+ */
+struct qrtr_array {
+	u32 *arr;
+	size_t size;
 };
 
 int qrtr_endpoint_register(struct qrtr_endpoint *ep, unsigned int net_id,

@@ -2933,3 +2933,6 @@
   xdp_rxq_info_reg
   xdp_rxq_info_reg_mem_model
   xdp_rxq_info_unreg
+  strscpy_pad
+  ktime_add_safe
+  hrtimer_sleeper_start_expires
