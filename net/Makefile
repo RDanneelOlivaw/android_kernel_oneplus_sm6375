@@ -116,8 +116,6 @@ obj-$(CONFIG_OPLUS_FEATURE_DATA_EVAL) += oplus_score/
 obj-$(CONFIG_OPLUS_FEATURE_APP_MONITOR) += oplus_apps_monitor/
 #endif /* OPLUS_FEATURE_APP_MONITOR */
 
-obj-y                           += oplus_modules/
-
 #ifdef OPLUS_FEATURE_WIFI_CAPCENTER
 obj-$(CONFIG_OPLUS_FEATURE_WIFI_CAPCENTER) += oplus_wificapcenter/
 #endif /* OPLUS_FEATURE_WIFI_CAPCENTER */

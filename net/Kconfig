@@ -500,8 +500,6 @@ source "net/oplus_apps_monitor/Kconfig"
 
 source "net/oplus_nwpower/Kconfig"
 
-source "net/oplus_modules/Kconfig"
-
 source "net/oplus_wificapcenter/Kconfig"
 
 source "net/oplus_wifi_wsa/Kconfig"
