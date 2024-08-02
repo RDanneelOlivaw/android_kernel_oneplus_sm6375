@@ -77,8 +77,10 @@ int tp_judge_ic_match_commandline(struct panel_info *panel_data) {
 	int i = 0;
 	prj_id = get_project();
 	pr_err("[TP] tp_dsi_display_primary = %s \n", tp_dsi_display_primary);
+	pr_err("[TP] prj_id = %d \n", prj_id);
 
 	for (i = 0; i < panel_data->project_num; i++) {
+		pr_err("[TP] check project id %d\n", panel_data->platform_support_project[i]);
 		if (prj_id == panel_data->platform_support_project[i]) {
 			g_tp_prj_id = panel_data->platform_support_project_dir[i];
 			pr_err("[TP] Driver match support project [%d]\n", panel_data->platform_support_project[i]);
